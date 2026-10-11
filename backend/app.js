@@ -8,6 +8,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const voucherRoutes = require('./src/routes/voucherRoutes');
+const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const AppError = require('./src/utils/AppError');
 const errorMiddleware = require('./src/middleware/errorMiddleware');
 
@@ -37,6 +38,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/vouchers', voucherRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use((req, res, next) => {
   next(new AppError(`Route not found: ${req.originalUrl}`, 404));

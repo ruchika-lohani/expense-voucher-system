@@ -65,6 +65,46 @@ async function request(url, options = {}) {
     );
     const voucherId = createVoucher.data.voucher.id;
 
+    const listParams = new URLSearchParams({
+      search: createVoucher.data.voucher.voucher_number,
+      department: 'operations',
+      category: 'travel',
+      status: 'DRAFT',
+      fromDate: '2026-10-11',
+      toDate: '2026-10-11',
+      minAmount: '1200',
+      maxAmount: '1300',
+      sortBy: 'amount',
+      order: 'asc',
+      page: '1',
+      limit: '1',
+    });
+    const listResult = await request(`${base}/api/vouchers?${listParams}`, { headers: empHeaders });
+    addResult(
+      'Voucher filters and pagination',
+      listResult.ok && listResult.data.total === 1 && listResult.data.data.length === 1 &&
+        listResult.data.page === 1 && listResult.data.totalPages === 1,
+      JSON.stringify(listResult.data)
+    );
+
+    const paginationResult = await request(`${base}/api/vouchers?page=1&limit=1&sortBy=created_at&order=DESC`, { headers: empHeaders });
+    addResult(
+      'Page and limit return one row',
+      paginationResult.ok && paginationResult.data.data.length === 1 && paginationResult.data.totalPages >= 2,
+      JSON.stringify(paginationResult.data)
+    );
+
+    const injectionParams = new URLSearchParams({ sortBy: 'amount; DROP TABLE vouchers', order: 'desc' });
+    const injectionResult = await request(`${base}/api/vouchers?${injectionParams}`, { headers: empHeaders });
+    addResult(
+      'Sort parameters safely whitelisted',
+      injectionResult.ok && Array.isArray(injectionResult.data.data),
+      JSON.stringify(injectionResult.data)
+    );
+
+    const invalidOrder = await request(`${base}/api/vouchers?order=desc%3BSELECT%201`, { headers: empHeaders });
+    addResult('Invalid order rejected', !invalidOrder.ok && invalidOrder.status === 400, JSON.stringify(invalidOrder.data));
+
     const invalidAmount = await request(`${base}/api/vouchers`, {
       method: 'POST',
       headers: empHeaders,
@@ -153,6 +193,16 @@ async function request(url, options = {}) {
     const secondVoucherId = secondVoucher.data.voucher.id;
     addResult('Create second employee voucher', secondVoucher.ok && secondVoucher.data.voucher.status === 'DRAFT', JSON.stringify(secondVoucher.data));
 
+    const crossEmployeeSearch = await request(
+      `${base}/api/vouchers?${new URLSearchParams({ search: secondVoucher.data.voucher.voucher_number })}`,
+      { headers: empHeaders }
+    );
+    addResult(
+      'Employee filters cannot expose another employee voucher',
+      crossEmployeeSearch.ok && crossEmployeeSearch.data.total === 0,
+      JSON.stringify(crossEmployeeSearch.data)
+    );
+
     const secondSubmit = await request(`${base}/api/vouchers/${secondVoucherId}/submit`, {
       method: 'POST',
       headers: emp2Headers,
@@ -188,11 +238,38 @@ async function request(url, options = {}) {
     });
     addResult('Accounts create voucher forbidden', !accountsCreate.ok && accountsCreate.status === 403, JSON.stringify(accountsCreate.data));
 
-    console.log('| Test | Result | Detail |');
-    console.log('| --- | --- | --- |');
+    const employeeDashboard = await request(`${base}/api/dashboard`, { headers: empHeaders });
+    addResult(
+      'Employee dashboard stats',
+      employeeDashboard.ok && ['total', 'draft', 'pending', 'approved', 'rejected', 'total_amount_claimed']
+        .every((key) => key in employeeDashboard.data),
+      JSON.stringify(employeeDashboard.data)
+    );
+
+    const directorDashboard = await request(`${base}/api/dashboard`, { headers: directorHeaders });
+    addResult(
+      'Director dashboard stats and activities',
+      directorDashboard.ok && ['pending_count', 'approved_today', 'rejected_today', 'total_pending_amount', 'recent_activities']
+        .every((key) => key in directorDashboard.data) && directorDashboard.data.recent_activities.length <= 5,
+      JSON.stringify(directorDashboard.data)
+    );
+
+    const accountsDashboard = await request(`${base}/api/dashboard`, { headers: accountsHeaders });
+    addResult(
+      'Accounts dashboard stats and approved vouchers',
+      accountsDashboard.ok && ['total', 'pending', 'approved', 'rejected', 'total_approved_amount', 'recent_approved_vouchers']
+        .every((key) => key in accountsDashboard.data) && accountsDashboard.data.recent_approved_vouchers.length <= 5,
+      JSON.stringify(accountsDashboard.data)
+    );
+
+    console.log('| Test | Result |');
+    console.log('| --- | --- |');
     for (const result of results) {
-      console.log(`| ${result.name} | ${result.pass} | ${String(result.detail).replace(/\|/g, '\\|')} |`);
+      console.log(`| ${result.name} | ${result.pass} |`);
     }
+    const failures = results.filter((result) => result.pass === 'FAIL');
+    console.log(`${results.length - failures.length}/${results.length} tests passed.`);
+    if (failures.length > 0) process.exitCode = 1;
   } catch (error) {
     console.error('SCRIPT_ERROR:', error);
     process.exit(1);

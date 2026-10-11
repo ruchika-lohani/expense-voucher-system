@@ -29,12 +29,13 @@ const createVoucher = async (req, res, next) => {
 
 const getVouchers = async (req, res, next) => {
   try {
-    const vouchers = await voucherService.listVouchers(req.user, req.query);
+    const result = await voucherService.listVouchers(req.user, req.query);
 
     res.status(200).json({
-      success: true,
-      count: vouchers.length,
-      vouchers,
+      data: result.data,
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
     });
   } catch (error) {
     next(error);

@@ -78,52 +78,138 @@ const ensureTransitionAllowed = (currentStatus, nextStatus) => {
   }
 };
 
-const buildVoucherFilters = (queryParams, startIndex = 1) => {
-  const { status, department, search, sortBy, order } = queryParams;
+const buildVoucherFilters = (user, queryParams) => {
   const filters = [];
   const values = [];
-  let index = startIndex;
-
-  if (status) {
-    filters.push(`v.status = $${index}`);
-    values.push(status);
-    index += 1;
-  }
-
-  if (department) {
-    filters.push(`LOWER(v.department) = LOWER($${index})`);
-    values.push(department);
-    index += 1;
-  }
-
-  if (search) {
-    filters.push(`(
-      LOWER(v.title) LIKE LOWER($${index}) OR
-      LOWER(v.description) LIKE LOWER($${index}) OR
-      LOWER(v.employee_name) LIKE LOWER($${index}) OR
-      LOWER(v.voucher_number) LIKE LOWER($${index})
-    )`);
-    values.push(`%${search}%`);
-    index += 1;
-  }
-
-  const allowedSortFields = {
-    voucher_number: 'v.voucher_number',
-    voucher_date: 'v.voucher_date',
-    expense_date: 'v.expense_date',
-    amount: 'v.amount',
-    status: 'v.status',
-    created_at: 'v.created_at',
+  const addFilter = (condition, value) => {
+    values.push(value);
+    filters.push(condition.replace('?', `$${values.length}`));
   };
 
-  const selectedSort = allowedSortFields[sortBy] || 'v.created_at';
-  const direction = order === 'asc' ? 'ASC' : 'DESC';
+  if (user.role === 'employee') {
+    addFilter('v.created_by = ?', user.id);
+  }
+
+  if (queryParams.search) {
+    values.push(`%${queryParams.search}%`);
+    const parameter = `$${values.length}`;
+    filters.push(`(v.voucher_number ILIKE ${parameter} OR v.employee_name ILIKE ${parameter})`);
+  }
+
+  if (queryParams.department) addFilter('v.department ILIKE ?', queryParams.department);
+  if (queryParams.category) addFilter('v.category ILIKE ?', queryParams.category);
+  if (queryParams.status) addFilter('v.status = ?', queryParams.status);
+  if (queryParams.fromDate) addFilter('v.expense_date >= ?', queryParams.fromDate);
+  if (queryParams.toDate) addFilter('v.expense_date <= ?', queryParams.toDate);
+  if (queryParams.minAmount !== undefined) addFilter('v.amount >= ?', queryParams.minAmount);
+  if (queryParams.maxAmount !== undefined) addFilter('v.amount <= ?', queryParams.maxAmount);
+
+  const allowedSortFields = {
+    created_at: 'v.created_at',
+    amount: 'v.amount',
+    expense_date: 'v.expense_date',
+    status: 'v.status',
+  };
 
   return {
-    filters,
+    whereClause: filters.length ? `WHERE ${filters.join(' AND ')}` : '',
     values,
-    sortField: selectedSort,
-    direction,
+    sortField: allowedSortFields[queryParams.sortBy] || allowedSortFields.created_at,
+    direction: queryParams.order === 'asc' ? 'ASC' : 'DESC',
+  };
+};
+
+const parsePositiveInteger = (value, fallback, field, max = Number.MAX_SAFE_INTEGER) => {
+  if (value === undefined) return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > max) {
+    throw new AppError(`${field} must be an integer between 1 and ${max}.`, 400);
+  }
+  return parsed;
+};
+
+const parseAmountFilter = (value, field) => {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new AppError(`${field} must be a non-negative number.`, 400);
+  }
+  return parsed;
+};
+
+const validateDateFilter = (value, field) => {
+  if (value === undefined) return;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new AppError(`${field} must use YYYY-MM-DD format.`, 400);
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new AppError(`${field} must be a valid date.`, 400);
+  }
+};
+
+const listVouchers = async (user, queryParams) => {
+  const page = parsePositiveInteger(queryParams.page, 1, 'page');
+  const limit = parsePositiveInteger(queryParams.limit, 20, 'limit', 100);
+  const minAmount = parseAmountFilter(queryParams.minAmount, 'minAmount');
+  const maxAmount = parseAmountFilter(queryParams.maxAmount, 'maxAmount');
+  const stringFilters = ['search', 'department', 'category', 'status', 'fromDate', 'toDate', 'sortBy', 'order'];
+
+  for (const field of stringFilters) {
+    if (queryParams[field] !== undefined && typeof queryParams[field] !== 'string') {
+      throw new AppError(`${field} must be a single string value.`, 400);
+    }
+  }
+
+  if (minAmount !== undefined && maxAmount !== undefined && minAmount > maxAmount) {
+    throw new AppError('minAmount cannot be greater than maxAmount.', 400);
+  }
+
+  const status = queryParams.status?.toUpperCase();
+  if (status && !['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'].includes(status)) {
+    throw new AppError('status must be DRAFT, PENDING_APPROVAL, APPROVED, or REJECTED.', 400);
+  }
+  if (queryParams.order && !['asc', 'desc'].includes(queryParams.order.toLowerCase())) {
+    throw new AppError('order must be asc or desc.', 400);
+  }
+
+  validateDateFilter(queryParams.fromDate, 'fromDate');
+  validateDateFilter(queryParams.toDate, 'toDate');
+  if (queryParams.fromDate && queryParams.toDate && queryParams.fromDate > queryParams.toDate) {
+    throw new AppError('fromDate cannot be later than toDate.', 400);
+  }
+
+  const filters = buildVoucherFilters(user, {
+    ...queryParams,
+    status,
+    order: queryParams.order?.toLowerCase(),
+    minAmount,
+    maxAmount,
+  });
+  const whereClause = filters.whereClause;
+  const offset = (page - 1) * limit;
+
+  const [countResult, dataResult] = await Promise.all([
+    query(`SELECT COUNT(*)::int AS total FROM vouchers v ${whereClause}`, filters.values),
+    query(
+      `
+        SELECT v.*
+        FROM vouchers v
+        ${whereClause}
+        ORDER BY ${filters.sortField} ${filters.direction}
+        LIMIT $${filters.values.length + 1}
+        OFFSET $${filters.values.length + 2}
+      `,
+      [...filters.values, limit, offset]
+    ),
+  ]);
+
+  const total = countResult.rows[0].total;
+  return {
+    data: dataResult.rows,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
   };
 };
 
@@ -181,35 +267,6 @@ const createVoucher = async (user, payload) => {
   );
 
   return result.rows[0];
-};
-
-const listVouchers = async (user, filters) => {
-  let values = [];
-  let baseQuery = `
-    SELECT v.*
-    FROM vouchers v
-  `;
-
-  if (user.role === 'employee') {
-    baseQuery += ` WHERE v.created_by = $1 `;
-    values.push(user.id);
-  }
-
-  const filterConfig = buildVoucherFilters(filters, user.role === 'employee' ? 2 : 1);
-  values = [...values, ...filterConfig.values];
-
-  if (filterConfig.filters.length > 0) {
-    if (user.role === 'employee') {
-      baseQuery += ` AND ${filterConfig.filters.join(' AND ')}`;
-    } else {
-      baseQuery += ` WHERE ${filterConfig.filters.join(' AND ')}`;
-    }
-  }
-
-  baseQuery += ` ORDER BY ${filterConfig.sortField} ${filterConfig.direction}`;
-
-  const result = await query(baseQuery, values);
-  return result.rows;
 };
 
 const getVoucherById = async (user, id) => {
