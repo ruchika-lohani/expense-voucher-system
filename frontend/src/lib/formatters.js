@@ -1,5 +1,5 @@
 export function money(value) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value) || 0)
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IN' }).format(Number(value) || 0)
 }
 
 export function formatDate(value, options = { month: 'short', day: 'numeric', year: 'numeric' }) {

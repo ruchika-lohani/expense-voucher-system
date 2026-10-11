@@ -450,3 +450,144 @@
 @media print {
   aside, nav, header, .no-print, .workflow-panel, .action-shortcuts { display: none !important; }
 }
+
+/* ---------- UI polish overrides ---------- */
+:root {
+  --ui-accent: #173a34;
+  --ui-accent-soft: #e6f0ed;
+  --ui-border: #dfe6e3;
+  --ui-radius: 12px;
+  --ui-shadow: 0 1px 2px rgba(23, 58, 52, 0.06), 0 4px 14px rgba(23, 58, 52, 0.05);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cards and panels */
+.panel,
+.stat-card {
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+  border: 1px solid var(--ui-border);
+}
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(23, 58, 52, 0.1);
+}
+.stat-value {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.page-heading h1 {
+  letter-spacing: -0.02em;
+}
+
+/* Buttons */
+.primary-button,
+.secondary-button,
+.danger-button {
+  border-radius: 10px;
+  font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+.primary-button:hover:not(:disabled),
+.secondary-button:hover:not(:disabled),
+.danger-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.primary-button:disabled,
+.danger-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Visible keyboard focus */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #2f8f7b;
+  outline-offset: 2px;
+}
+
+/* Inputs */
+.text-input,
+.search-form input,
+.select-control select {
+  border-radius: 10px;
+}
+
+/* Tables */
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f4f7f6;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #43524e;
+  z-index: 1;
+}
+.data-table tbody tr {
+  transition: background 0.12s ease;
+}
+.data-table tbody tr:hover {
+  background: #f6faf8;
+}
+.amount-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Status badges */
+.status-badge {
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+}
+.status-draft { background: #eceff1; color: #455a64; }
+.status-pending_approval { background: #fff4d6; color: #8a5a00; }
+.status-approved { background: #dff5e7; color: #17663a; }
+.status-rejected { background: #fde4e4; color: #a12323; }
+
+/* Rejection callout */
+.rejection-callout {
+  border-left: 4px solid #d64545;
+  background: #fff3f3;
+  border-radius: 10px;
+}
+
+/* Signature boxes */
+.signature-box {
+  background: #fbfcfc;
+  border-radius: 10px;
+}
+
+/* Activity rows on dashboard */
+.activity-row {
+  border-radius: 10px;
+  transition: background 0.12s ease;
+}
+.activity-row:hover {
+  background: #f6faf8;
+}
+
+/* Mobile */
+@media (max-width: 720px) {
+  .page-heading { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .detail-layout { grid-template-columns: 1fr !important; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .register-toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
