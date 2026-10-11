@@ -97,7 +97,7 @@ export default function VoucherDetailPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading eyebrow={`${voucher.voucher_number} · ${voucher.department}`} title={voucher.title} description="Voucher record and approval history." action={<><button type="button" className="secondary-button no-print" onClick={() => window.print()}>Print voucher</button> <Link className="quiet-link no-print" to={base}><ArrowLeft size={16} />Back to vouchers</Link></>}
+        <PageHeading eyebrow={`${voucher.voucher_number} · ${voucher.department}`} title={voucher.title} description="Voucher record and approval history." action={<><button type="button" className="secondary-button no-print" onClick={() => window.print()}>Print voucher</button> <Link className="quiet-link no-print" to={base}><ArrowLeft size={16} />Back to vouchers</Link></>} />
       <div className="detail-layout">
         <div className="detail-main-column">
           <section className="panel voucher-overview-card">
