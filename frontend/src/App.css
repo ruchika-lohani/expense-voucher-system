@@ -155,6 +155,9 @@
 .amount-cell { color: #2b3c35 !important; font-weight: 600; }
 .row-open { width: 28px; height: 28px; display: grid; place-items: center; color: #87968e; border-radius: 6px; }
 .row-open:hover { color: #315e4b; background: #eef5ef; }
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.row-delete { border: 0; background: transparent; }
+.row-delete:hover { color: #a84f48; background: #fbefed; }
 .pagination { min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 17px; color: #909a95; font-size: 10px; }
 .pagination > div { display: flex; align-items: center; gap: 7px; }
 .pagination strong { color: #53635a; font-weight: 600; }
@@ -187,6 +190,18 @@
 .currency-input input { flex: 1; }
 .form-footer { min-height: 61px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -25px; padding: 10px 25px; border-top: 1px solid #e9eeea; background: #fbfcfb; border-radius: 0 0 8px 8px; }
 .form-footer > span { color: #8b9790; font-size: 10px; }
+.form-footer-actions { display: flex; align-items: center; gap: 8px; }
+.signature-form-wrap { padding: 13px 0 20px; }
+.signature-picker { min-height: 71px; display: flex; align-items: center; gap: 11px; padding: 9px 12px; border: 1px dashed #cbd9ce; border-radius: 7px; background: #fbfdfb; cursor: pointer; }
+.signature-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.signature-picker:focus-within { outline: 3px solid rgba(100,152,117,.15); border-color: #84ab90; }
+.signature-picker > img { width: 57px; height: 49px; flex: 0 0 auto; object-fit: contain; padding: 4px; border: 1px solid #e4ebe5; border-radius: 5px; background: #fff; }
+.signature-picker-icon { width: 39px; height: 39px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 8px; color: #578065; background: #edf5ef; }
+.signature-picker-copy { min-width: 0; flex: 1; }
+.signature-picker-copy strong, .signature-picker-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.signature-picker-copy strong { color: #52685a; font-size: 10px; font-weight: 600; }
+.signature-picker-copy small { margin-top: 4px; color: #97a39b; font-size: 9px; }
+.signature-picker-ready { border-style: solid; border-color: #d8e7da; background: #f8fbf8; }
 .detail-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(245px, .8fr); align-items: start; gap: 17px; }
 .detail-main-column, .detail-side-column { display: grid; gap: 15px; min-width: 0; }
 .voucher-overview-card { padding: 20px 22px; }
@@ -235,6 +250,7 @@
 .signature-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .signature-upload:focus-within { outline: 3px solid rgba(100,152,117,.15); border-color: #84ab90; }
 .signature-upload-icon { width: 31px; height: 31px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 7px; color: #588067; background: #edf5ef; }
+.signature-preview { width: 43px; height: 35px; flex: 0 0 auto; object-fit: contain; padding: 3px; border: 1px solid #e3ebe4; border-radius: 5px; background: #fff; }
 .signature-upload > span:nth-of-type(2) { min-width: 0; flex: 1; }
 .signature-upload strong, .signature-upload small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .signature-upload strong { color: #53675b; font-size: 10px; font-weight: 600; }
@@ -353,6 +369,7 @@
   .form-grid { gap: 14px 12px; }
   .form-footer { margin: 0 -15px; padding: 10px 15px; }
   .form-footer > span { max-width: 48%; line-height: 1.5; }
+  .form-footer-actions { flex-wrap: wrap; justify-content: flex-end; }
   .detail-layout { grid-template-columns: minmax(0, 1fr); }
   .detail-side-column { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   .timeline-panel { grid-column: 1 / -1; }

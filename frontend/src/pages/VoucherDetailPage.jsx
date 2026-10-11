@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, Download, FileText, Pencil, ShieldCheck, Trash2, Upload, X } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -38,6 +38,7 @@ export default function VoucherDetailPage() {
 
   const submitForApproval = async () => {
     if (!signature) return toast.error('Choose a JPG or PNG signature image first.')
+    if (!window.confirm('Submit this voucher for director approval? You will not be able to edit it afterward.')) return
     const body = new FormData()
     body.append('employee_signature', signature)
     await runAction(() => api.post(`/vouchers/${id}/submit`, body), 'Voucher submitted for approval.')
@@ -143,5 +144,26 @@ function DirectorActions({ busy, file, setFile, hasSavedSignature, reason, setRe
 }
 
 function SignatureInput({ file, setFile, label }) {
-  return <label className="signature-upload"><input type="file" accept="image/png,image/jpeg" onChange={(event) => setFile(event.target.files?.[0] || null)} /><span className="signature-upload-icon"><Upload size={17} /></span><span><strong>{file?.name || label}</strong><small>{file ? `${(file.size / 1024).toFixed(0)} KB · ready to attach` : 'JPG or PNG · up to 2 MB'}</small></span><span className="upload-browse">Browse</span></label>
+  const preview = useMemo(() => file ? URL.createObjectURL(file) : '', [file])
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview)
+  }, [preview])
+
+  const handleChange = (event) => {
+    const selected = event.target.files?.[0]
+    if (!selected) return
+    if (!['image/png', 'image/jpeg'].includes(selected.type)) {
+      toast.error('Signature must be a JPG or PNG image.')
+      event.target.value = ''
+      return
+    }
+    if (selected.size > 2 * 1024 * 1024) {
+      toast.error('Signature image must be 2 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+    setFile(selected)
+  }
+
+  return <label className="signature-upload"><input type="file" accept="image/png,image/jpeg" onChange={handleChange} />{preview ? <img className="signature-preview" src={preview} alt="Preview of uploaded signature" /> : <span className="signature-upload-icon"><Upload size={17} /></span>}<span><strong>{file?.name || label}</strong><small>{file ? `${(file.size / 1024).toFixed(0)} KB · preview ready` : 'JPG or PNG · up to 2 MB'}</small></span><span className="upload-browse">{file ? 'Change' : 'Browse'}</span></label>
 }

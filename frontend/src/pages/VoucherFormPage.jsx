@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { ArrowLeft, CalendarDays, Save } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Check, Save, Upload } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
@@ -37,6 +37,8 @@ export default function VoucherFormPage() {
   const editing = Boolean(id)
   const [loading, setLoading] = useState(editing)
   const [saving, setSaving] = useState(false)
+  const [signature, setSignature] = useState(null)
+  const [signaturePreview, setSignaturePreview] = useState('')
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(voucherSchema),
     defaultValues: {
@@ -75,13 +77,32 @@ export default function VoucherFormPage() {
   }, [editing, id, reset])
 
   const onSubmit = async (values) => {
+    await saveVoucher(values, false)
+  }
+
+  const saveVoucher = async (values, submitAfterSave) => {
+    if (submitAfterSave && !signature) {
+      toast.error('Add your signature image before submitting for approval.')
+      return
+    }
+    if (submitAfterSave && !window.confirm('Submit this voucher for director approval? You will not be able to edit it afterward.')) return
+
     setSaving(true)
     try {
       const response = editing
         ? await api.put(`/vouchers/${id}`, values)
         : await api.post('/vouchers', values)
-      toast.success(editing ? 'Voucher updated.' : 'Draft voucher created.')
-      navigate(`/vouchers/${response.data.voucher.id}`)
+      const voucherId = response.data.voucher.id
+
+      if (submitAfterSave) {
+        const body = new FormData()
+        body.append('employee_signature', signature)
+        await api.post(`/vouchers/${voucherId}/submit`, body)
+        toast.success('Voucher submitted for approval.')
+      } else {
+        toast.success(editing ? 'Draft voucher updated.' : 'Voucher saved as draft.')
+      }
+      navigate(`/vouchers/${voucherId}`)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Unable to save this voucher.')
     } finally {
@@ -110,7 +131,9 @@ export default function VoucherFormPage() {
           <FormField label="Amount (USD)" error={errors.amount?.message}><div className="currency-input"><span>$</span><input className="text-input" type="number" min="0.01" step="0.01" placeholder="0.00" {...register('amount')} /></div></FormField>
           <FormField label="Employee ID" error={errors.employee_id?.message}><input className="text-input" placeholder="Optional" {...register('employee_id')} /></FormField>
         </div>
-        <div className="form-footer"><span>Saved as a draft until you submit it for approval.</span><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Create draft'}<Save size={16} /></button></div>
+        <div className="form-section-heading form-section-spaced"><span className="form-section-number">03</span><div><h2>Employee signature</h2><p>Attach a signature image before requesting approval.</p></div></div>
+        <div className="signature-form-wrap"><SignaturePicker file={signature} setFile={setSignature} preview={signaturePreview} setPreview={setSignaturePreview} /></div>
+        <div className="form-footer"><span>{signature ? 'Signature attached and ready for submission.' : 'A signature is required before submitting for approval.'}</span><div className="form-footer-actions"><button className="secondary-button" type="button" disabled={saving} onClick={handleSubmit((values) => saveVoucher(values, false))}><Save size={16} />{saving ? 'Saving…' : 'Save as Draft'}</button><button className="primary-button" type="button" disabled={saving} onClick={handleSubmit((values) => saveVoucher(values, true))}>{saving ? 'Working…' : 'Submit for approval'}<Check size={16} /></button></div></div>
       </form>
     </div>
   )
@@ -118,4 +141,36 @@ export default function VoucherFormPage() {
 
 function FormField({ label, error, wide, children }) {
   return <label className={`form-field ${wide ? 'form-field-wide' : ''}`}><span className="field-label">{label}</span>{children}{error && <span className="field-error">{error}</span>}</label>
+}
+
+function SignaturePicker({ file, setFile, preview, setPreview }) {
+  const handleChange = (event) => {
+    const selected = event.target.files?.[0]
+    if (!selected) return
+    if (!['image/jpeg', 'image/png'].includes(selected.type)) {
+      toast.error('Signature must be a JPG or PNG image.')
+      event.target.value = ''
+      return
+    }
+    if (selected.size > 2 * 1024 * 1024) {
+      toast.error('Signature image must be 2 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+    setFile(selected)
+    setPreview(URL.createObjectURL(selected))
+  }
+
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview)
+  }, [preview])
+
+  return (
+    <label className={`signature-picker ${preview ? 'signature-picker-ready' : ''}`}>
+      <input type="file" accept="image/png,image/jpeg" onChange={handleChange} />
+      {preview ? <img src={preview} alt="Preview of uploaded employee signature" /> : <span className="signature-picker-icon"><Upload size={18} /></span>}
+      <span className="signature-picker-copy"><strong>{file?.name || 'Upload signature image'}</strong><small>{file ? `${(file.size / 1024).toFixed(0)} KB · preview ready` : 'JPG or PNG · up to 2 MB'}</small></span>
+      <span className="upload-browse">{file ? 'Change' : 'Browse'}</span>
+    </label>
+  )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Pencil, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import api from '../lib/api'
@@ -82,6 +82,23 @@ export default function VoucherListPage({ mode }) {
     setFilters((current) => ({ ...current, sortBy, order }))
   }
 
+  const deleteDraft = async (voucher) => {
+    if (!window.confirm(`Delete draft ${voucher.voucher_number}? This cannot be undone.`)) return
+    try {
+      await api.delete(`/vouchers/${voucher.id}`)
+      toast.success('Draft voucher deleted.')
+      const { data } = await api.get('/vouchers', {
+        params: { search: filters.search, status: activeStatus, sortBy: filters.sortBy, order: filters.order, page, limit: 8 },
+      })
+      setRows(data.data || [])
+      setTotal(data.total || 0)
+      setTotalPages(data.totalPages || 0)
+      if (data.data.length === 0 && page > 1) setPage((current) => current - 1)
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to delete this draft.')
+    }
+  }
+
   return (
     <div className="page-stack">
       <PageHeading eyebrow={director ? 'DIRECTOR WORKSPACE' : `${user.role.toUpperCase()} WORKSPACE`} title={title} description={description} action={user.role === 'employee' ? <Link className="secondary-button" to="/vouchers/new">+ New voucher</Link> : null} />
@@ -96,7 +113,7 @@ export default function VoucherListPage({ mode }) {
         ) : (
           <>
             <div className="table-scroll"><table className="data-table"><thead><tr><th>Voucher</th><th>Employee</th><th>Department</th><th>Expense date</th><th>Amount</th><th>Status</th><th><span className="sr-only">Open voucher</span></th></tr></thead><tbody>
-              {rows.map((voucher) => <tr key={voucher.id}><td><VoucherLink voucher={voucher} to={`${detailBase}/${voucher.id}`} /><span className="table-secondary">{voucher.title}</span></td><td>{voucher.employee_name || '—'}</td><td>{voucher.department || '—'}</td><td>{formatDate(voucher.expense_date)}</td><td className="amount-cell">{money(voucher.amount)}</td><td><StatusBadge status={voucher.status} /></td><td><Link className="row-open" to={`${detailBase}/${voucher.id}`} aria-label={`Open voucher ${voucher.voucher_number}`}><ArrowRight size={16} /></Link></td></tr>)}
+              {rows.map((voucher) => <tr key={voucher.id}><td><VoucherLink voucher={voucher} to={`${detailBase}/${voucher.id}`} /><span className="table-secondary">{voucher.title}</span></td><td>{voucher.employee_name || '—'}</td><td>{voucher.department || '—'}</td><td>{formatDate(voucher.expense_date)}</td><td className="amount-cell">{money(voucher.amount)}</td><td><StatusBadge status={voucher.status} /></td><td><div className="row-actions">{user.role === 'employee' && voucher.status === 'DRAFT' && <><Link className="row-open" to={`/vouchers/${voucher.id}/edit`} aria-label={`Edit draft ${voucher.voucher_number}`} title="Edit draft"><Pencil size={15} /></Link><button className="row-open row-delete" onClick={() => deleteDraft(voucher)} aria-label={`Delete draft ${voucher.voucher_number}`} title="Delete draft"><Trash2 size={15} /></button></>}<Link className="row-open" to={`${detailBase}/${voucher.id}`} aria-label={`Open voucher ${voucher.voucher_number}`} title="View details"><ArrowRight size={16} /></Link></div></td></tr>)}
             </tbody></table></div>
             <div className="pagination"><span>Showing <strong>{(page - 1) * 8 + 1}–{Math.min(page * 8, total)}</strong> of <strong>{total}</strong></span><div><button className="pagination-button" aria-label="Previous page" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}><ArrowLeft size={15} /></button><span className="page-count">{page} <span>/</span> {Math.max(totalPages, 1)}</span><button className="pagination-button" aria-label="Next page" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)}><ArrowRight size={15} /></button></div></div>
           </>
