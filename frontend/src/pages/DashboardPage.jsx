@@ -48,10 +48,13 @@ export default function DashboardPage() {
       ? 'A clear view of approvals, decisions, and what needs attention.'
       : 'Approved spend and voucher activity, all in one place.'
   const cards = employee
-    ? [
+        ? [
         { label: 'Total vouchers', value: stats?.total ?? '—', detail: 'Across your submissions', icon: ReceiptText, tone: 'green' },
+        { label: 'Drafts', value: stats?.draft ?? '—', detail: 'Not yet submitted', icon: FileText, tone: 'ink' },
         { label: 'In review', value: stats?.pending ?? '—', detail: 'Awaiting a decision', icon: Clock3, tone: 'amber' },
+        { label: 'Rejected', value: stats?.rejected ?? '—', detail: 'Returned to employees', icon: ClipboardCheck, tone: 'rose' },
         { label: 'Approved', value: stats?.approved ?? '—', detail: 'Ready for processing', icon: BadgeCheck, tone: 'blue' },
+        { label: 'Rejected', value: stats?.rejected ?? '—', detail: 'Returned with a reason', icon: ClipboardCheck, tone: 'rose' },
         { label: 'Amount claimed', value: money(stats?.total_amount_claimed), detail: 'All submitted vouchers', icon: WalletCards, tone: 'ink' },
       ]
     : director

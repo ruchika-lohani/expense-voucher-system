@@ -9,6 +9,9 @@ import { formatDate, money } from '../lib/formatters'
 
 const routeBase = { employee: '/vouchers', director: '/director/vouchers', accounts: '/accounts/vouchers' }
 
+const apiOrigin = import.meta.env.VITE_API_URL ? new URL(import.meta.env.VITE_API_URL, window.location.origin).origin : ''
+const fileUrl = (path) => (!path ? '' : /^https?:/.test(path) ? path : `${apiOrigin}${path.startsWith('/') ? '' : '/'}${path}`)
+
 export default function VoucherDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -94,7 +97,7 @@ export default function VoucherDetailPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading eyebrow={`${voucher.voucher_number} · ${voucher.department}`} title={voucher.title} description="Voucher record and approval history." action={<Link className="quiet-link" to={base}><ArrowLeft size={16} />Back to vouchers</Link>} />
+      <PageHeading eyebrow={`${voucher.voucher_number} · ${voucher.department}`} title={voucher.title} description="Voucher record and approval history." action={<><button type="button" className="secondary-button no-print" onClick={() => window.print()}>Print voucher</button> <Link className="quiet-link no-print" to={base}><ArrowLeft size={16} />Back to vouchers</Link></>}
       <div className="detail-layout">
         <div className="detail-main-column">
           <section className="panel voucher-overview-card">
@@ -108,11 +111,14 @@ export default function VoucherDetailPage() {
               <DetailItem label="Voucher date" value={formatDate(voucher.voucher_date)} />
               <DetailItem label="Expense date" value={formatDate(voucher.expense_date)} />
               <DetailItem label="Approval date" value={formatDate(voucher.approval_date)} />
-              <DetailItem label="Submitted" value={formatDate(voucher.created_at)} />
+              <DetailItem label="Created" value={formatDate(voucher.created_at)} />
             </div>
             <div className="description-block"><span className="field-label">Business purpose</span><p>{voucher.description}</p></div>
             {voucher.rejection_reason && <div className="rejection-callout"><strong>Reason for rejection</strong><p>{voucher.rejection_reason}</p></div>}
-            {(voucher.employee_signature || voucher.director_signature) && <div className="signature-row"><span><ShieldCheck size={16} />Signatures on file</span>{voucher.employee_signature && <a href={voucher.employee_signature} target="_blank" rel="noreferrer"><Download size={14} />Employee</a>}{voucher.director_signature && <a href={voucher.director_signature} target="_blank" rel="noreferrer"><Download size={14} />Director</a>}</div>}
+            <div className="signature-grid">
+  <SignatureBox label="Employee signature" src={voucher.employee_signature} />
+  <SignatureBox label="Director signature" src={voucher.director_signature} />
+</div>
           </section>
           {canSubmit && <ActionPanel title="Ready for review?" description="Attach your signature to send this voucher to the director." busy={busy} file={signature} setFile={setSignature} acceptLabel="Add employee signature" buttonLabel="Submit for approval" onAction={submitForApproval} icon={Upload} />}
           {canReview && <DirectorActions busy={busy} file={signature} setFile={setSignature} hasSavedSignature={Boolean(user.signature_path)} reason={rejectionReason} setReason={setRejectionReason} onApprove={approve} onReject={reject} />}
@@ -127,7 +133,18 @@ export default function VoucherDetailPage() {
   )
 }
 
-function DetailItem({ label, value }) {
+function DetailItem
+function SignatureBox({ label, src }) {
+  return (
+    <div className="signature-box">
+      <span className="signature-label">{label}</span>
+      {src ? <img src={fileUrl(src)} alt={label} /> : <p className="signature-missing">Not signed yet</p>}
+    </div>
+  )
+}
+
+
+{
   return <div className="detail-item"><span>{label}</span><strong>{value || '—'}</strong></div>
 }
 

@@ -414,3 +414,39 @@
   .login-brand-copy h1 { font-size: 27px; }
   .login-form-panel { min-height: 450px; }
 }
+
+
+.advanced-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 14px 0 6px;
+}
+.advanced-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+.advanced-filters input {
+  padding: 8px 10px;
+  border: 1px solid #cfd8d5;
+  border-radius: 8px;
+  font: inherit;
+}
+.advanced-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+
+
+.signature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 18px; }
+.signature-box { border: 1px solid #cfd8d5; border-radius: 10px; padding: 12px; }
+.signature-box .signature-label { display: block; font-size: 0.85rem; margin-bottom: 8px; }
+.signature-box img { max-width: 100%; max-height: 110px; object-fit: contain; display: block; }
+.signature-box .signature-missing { color: #7a8a86; font-size: 0.85rem; margin: 0; }
+@media print {
+  aside, nav, header, .no-print, .workflow-panel, .action-shortcuts { display: none !important; }
+}
