@@ -1,9 +1,10 @@
 const express = require('express');
+const { loginUser, getCurrentUser } = require('../controllers/authController');
+const { authenticate } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.get('/health', (req, res) => {
-  res.status(200).json({ success: true, message: 'Auth routes ready' });
-});
+router.post('/login', loginUser);
+router.get('/me', authenticate, getCurrentUser);
 
 module.exports = router;

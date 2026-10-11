@@ -1,5 +1,6 @@
+const path = require('path');
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 // PostgreSQL connection configuration.
 // Supports either a single DATABASE_URL or separate DB_* variables.

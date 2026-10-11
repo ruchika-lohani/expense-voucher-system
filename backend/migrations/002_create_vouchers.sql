@@ -1,5 +1,10 @@
 -- Voucher records, numbering, payment status, and indexes.
-CREATE TYPE voucher_status AS ENUM ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'voucher_status') THEN
+    CREATE TYPE voucher_status AS ENUM ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED');
+  END IF;
+END $$;
 
 CREATE SEQUENCE IF NOT EXISTS voucher_number_seq START 1 INCREMENT 1;
 
@@ -27,9 +32,6 @@ CREATE TABLE IF NOT EXISTS vouchers (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT fk_vouchers_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
-
-ALTER TABLE vouchers
-  ADD CONSTRAINT chk_voucher_status CHECK (status IN ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'));
 
 DROP TRIGGER IF EXISTS vouchers_updated_at ON vouchers;
 CREATE TRIGGER vouchers_updated_at

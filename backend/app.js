@@ -2,10 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
-// Central Express app setup.
-// This file configures middleware and the global error handler.
+const authRoutes = require('./src/routes/authRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const voucherRoutes = require('./src/routes/voucherRoutes');
+const AppError = require('./src/utils/AppError');
+const errorMiddleware = require('./src/middleware/errorMiddleware');
+
 const app = express();
 
 app.use(helmet());
@@ -19,6 +24,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -27,21 +34,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/vouchers', voucherRoutes);
+
 app.use((req, res, next) => {
-  const error = new Error(`Route not found: ${req.originalUrl}`);
-  error.statusCode = 404;
-  next(error);
+  next(new AppError(`Route not found: ${req.originalUrl}`, 404));
 });
 
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
-
-  res.status(statusCode).json({
-    success: false,
-    message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
-  });
-});
+app.use(errorMiddleware);
 
 module.exports = app;
