@@ -333,18 +333,6 @@ node voucher-test-script.js
 - Uploads are restricted to JPG/PNG and 2 MB.
 - Helmet and CORS (restricted to `CLIENT_URL`) are enabled.
 - `.env` is excluded from version control. Only `.env.example` is committed.
-
-## Screenshots
-
-Add screenshots to a `screenshots/` folder and reference them here:
-
-```
-![Login](screenshots/login.png)
-![Employee dashboard](screenshots/employee-dashboard.png)
-![Create voucher](screenshots/create-voucher.png)
-![Director pending approvals](screenshots/director-pending.png)
-![Voucher details with signatures](screenshots/voucher-details.png)
-![Accounts register](screenshots/accounts-register.png)
 ```
 
 ## Future Improvements
