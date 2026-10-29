@@ -83,7 +83,6 @@ npm install
 cp .env.example .env        # on Windows: copy .env.example .env
 ```
 
-Edit `backend/.env` and fill in your database password and a long random `JWT_SECRET`.
 
 Run the migrations and seed the demo users:
 
